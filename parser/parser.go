@@ -45,6 +45,8 @@ func (p *Parser) ParseStatement() ast.Statement {
 	switch p.currentToken.Type {
 	case token.LET:
 		return p.parseLetStatement()
+	case token.RETURN:
+		return p.parseReturnStatement()
 	default:
 		return nil
 	}
@@ -66,6 +68,19 @@ func (p *Parser) parseLetStatement() *ast.LetStatement {
 	for !p.currentTokenIs(token.SEMICOLON) {
 		p.NextToken()
 	}
+	return stmt
+}
+
+func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
+	stmt := &ast.ReturnStatement{Token: p.currentToken}
+
+	p.NextToken()
+
+	// current tests will timeout if there is no semicolon at the end
+	for !p.currentTokenIs(token.SEMICOLON) {
+		p.NextToken()
+	}
+
 	return stmt
 }
 
