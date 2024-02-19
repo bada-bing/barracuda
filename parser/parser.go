@@ -14,10 +14,27 @@ type Parser struct {
 	peekToken    token.Token
 
 	errors []string
+
+	prefixParseFns map[token.TokenType]prefixParseFn
+	infixParseFns  map[token.TokenType]infixParseFn
 }
+
+type (
+	prefixParseFn func() ast.Expression
+	infixParseFn  func(ast.Expression) ast.Expression // parameter Expression is the "left-side" operand of the operator
+)
+
+// operator precedence
+const (
+	_ int = iota // successive untyped integer consts
+	LOWEST
+)
 
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{l: l, errors: []string{}}
+
+	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
+	p.registerPrefix(token.IDENTIF, p.parseIdentif)
 
 	// read two tokens so that both current and peek token are set
 	p.NextToken()
@@ -25,6 +42,14 @@ func New(l *lexer.Lexer) *Parser {
 
 	return p
 
+}
+
+func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
+	p.prefixParseFns[tokenType] = fn
+}
+
+func (p *Parser) registerInfix(tokenType token.TokenType, fn infixParseFn) {
+	p.infixParseFns[tokenType] = fn
 }
 
 func (p *Parser) Errors() []string {
@@ -48,7 +73,8 @@ func (p *Parser) ParseStatement() ast.Statement {
 	case token.RETURN:
 		return p.parseReturnStatement()
 	default:
-		return nil
+		// if neither let nor return assume expression statement
+		return p.parseExpressionStatement()
 	}
 }
 
@@ -82,6 +108,34 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 	}
 
 	return stmt
+}
+
+func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	stmt := &ast.ExpressionStatement{Token: p.currentToken}
+
+	stmt.Expression = p.parseExpression(LOWEST)
+
+	// semicolons are optional, if nextToken semicolon go over it
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.NextToken()
+	}
+
+	return stmt
+}
+
+func (p *Parser) parseExpression(precedence int) ast.Expression {
+	prefix := p.prefixParseFns[p.currentToken.Type]
+
+	if prefix == nil {
+		return nil
+	}
+
+	leftExpr := prefix()
+	return leftExpr
+}
+
+func (p *Parser) parseIdentif() ast.Expression {
+	return &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
 }
 
 func (p *Parser) ParseProgram() *ast.Program {

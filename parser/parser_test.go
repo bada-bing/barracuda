@@ -113,3 +113,38 @@ func TestReturnStatements(t *testing.T) {
 		}
 	}
 }
+
+func TestIdentifierExpression(t *testing.T) {
+	input := `foobar;`
+
+	l := lexer.New(input)
+	p := New(l)
+
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	if len(program.Statements) != 1 {
+		t.Fatalf("Not enough statements. Expected 1. Got=%d", len(program.Statements))
+	}
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+
+	if !ok {
+		t.Fatalf("program.Statement is not *ast.ExpressionStatement. Got=%T", program.Statements)
+	}
+
+	identif, ok := stmt.Expression.(*ast.Identifier)
+
+	if !ok {
+		t.Fatalf("Expression is not *ast.Expression. Got=%T", stmt.Expression)
+	}
+
+	if identif.Value != "foobar" {
+		t.Fatalf("Identifier Value is not 'foobar'. Got=%s", identif.Value)
+	}
+
+	if identif.TokenLiteral() != "foobar" {
+		t.Fatalf("Identifier TokenLiteral is not 'foobar'. Got=%s", identif.TokenLiteral())
+	}
+
+}
