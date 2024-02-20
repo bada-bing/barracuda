@@ -5,6 +5,7 @@ import (
 	"barracuda/lexer"
 	"barracuda/token"
 	"fmt"
+	"strconv"
 )
 
 type Parser struct {
@@ -35,6 +36,7 @@ func New(l *lexer.Lexer) *Parser {
 
 	p.prefixParseFns = make(map[token.TokenType]prefixParseFn)
 	p.registerPrefix(token.IDENTIF, p.parseIdentif)
+	p.registerPrefix(token.INT, p.parseIntegerLiteral)
 
 	// read two tokens so that both current and peek token are set
 	p.NextToken()
@@ -136,6 +138,21 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 
 func (p *Parser) parseIdentif() ast.Expression {
 	return &ast.Identifier{Token: p.currentToken, Value: p.currentToken.Literal}
+}
+
+func (p *Parser) parseIntegerLiteral() ast.Expression {
+	lit := &ast.IntegerLiteral{Token: p.currentToken}
+
+	value, err := strconv.ParseInt(p.currentToken.Literal, 0, 64)
+
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %q integer", p.currentToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+
+	lit.Value = value
+	return lit
 }
 
 func (p *Parser) ParseProgram() *ast.Program {

@@ -83,6 +83,19 @@ func (i *Identifier) String() string {
 	return i.Value
 }
 
+type IntegerLiteral struct {
+	Token token.Token
+	Value int64
+}
+
+func (il *IntegerLiteral) expressionNode() {}
+func (il *IntegerLiteral) TokenLiteral() string {
+	return il.Token.Literal
+}
+func (il *IntegerLiteral) String() string {
+	return il.Token.Literal
+}
+
 // return is considered a statement because it is used to terminate the execution of a function and return control to the calling code.
 type ReturnStatement struct {
 	Token       token.Token // the RETURN token
